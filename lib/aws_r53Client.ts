@@ -6,6 +6,7 @@ export type { HostedZone };
 export type HostedZonesIndex = { [key: string]: HostedZone; };
 export type HealthChecksIndex = { [key: string]: HealthCheck; };
 
+// TODO: extract this to env / config / settings UI / somewhere else
 const TTL_ZONES = 15; //300;
 const TTL_RECORDS = 15; //120;
 const TTL_HEALTHCHECKS = 15; //120;
