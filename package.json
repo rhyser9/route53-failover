@@ -1,7 +1,13 @@
 {
   "name": "route53-failover",
+  "author": "rhys.barrie@gmail.com",
+  "description": "A webtool for updating weighted failover records in AWS Route53",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "^18.12.1",
+    "npm": "^9.1.3"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,14 +15,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-route-53": "^3.223.0",
+    "@aws-sdk/client-sts": "^3.223.0",
+    "@prisma/client": "^4.7.1",
+    "next": "13.0.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/types": "^3.222.0",
     "@types/node": "18.11.10",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
     "eslint": "8.29.0",
     "eslint-config-next": "13.0.6",
-    "next": "13.0.6",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "prisma": "^4.7.1",
     "typescript": "4.9.3"
   }
 }

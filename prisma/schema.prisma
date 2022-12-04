@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id         String       @id
+  name       String       @unique
+  access_key String       @unique
+  credential Credentials?
+  zones      Zone[]
+}
+
+model Credentials {
+  access_key String  @id
+  secret_key String
+  Account    Account @relation(fields: [access_key], references: [access_key], onDelete: Cascade)
+}
+
+model Zone {
+  zone_id      String  @id
+  zone_name    String
+  zone_private Boolean
+  account_id   String
+  account      Account @relation(fields: [account_id], references: [id])
+  sites        Site[]
+}
+
+model Site {
+  id              Int              @id @default(autoincrement())
+  name            String
+  fqdn            String
+  zone_id         String
+  zone            Zone             @relation(fields: [zone_id], references: [zone_id])
+  failoverRecords FailoverRecord[]
+  last_update     DateTime         @default(now())
+  notif_email     String?
+  notif_teams     String?
+  monitoring_link String?
+  enabled         Boolean
+  Log             Log[]
+}
+
+model FailoverRecord {
+  id             Int          @id @default(autoincrement())
+  site_id        Int
+  site           Site         @relation(fields: [site_id], references: [id], onDelete: Cascade)
+  name           String
+  value          String
+  record_type    String
+  healthcheck_id String?      @unique
+  healthcheck    HealthCheck? @relation(fields: [healthcheck_id], references: [id])
+  ttl            Int
+  weight         Int?
+  managed        Boolean
+}
+
+model HealthCheck {
+  id              String          @id
+  name            String
+  address         String?
+  port            Int
+  type            String
+  fqdn            String
+  check_interval  Int
+  threshold       Int
+  measure_latency Boolean
+  inverted        Boolean
+  enablesni       Boolean?
+  regions         String
+  path            String?
+  searchString    String?
+  status          Boolean
+  FailoverRecord  FailoverRecord?
+}
+
+model Log {
+  id      Int      @id @default(autoincrement())
+  time    DateTime @default(now())
+  site_id Int
+  site    Site     @relation(fields: [site_id], references: [id])
+  user    String
+  action  String
+  log     String
+}
