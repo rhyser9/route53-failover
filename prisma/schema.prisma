@@ -87,8 +87,8 @@ model Site {
 model Log {
   id      Int      @id @default(autoincrement())
   time    DateTime @default(now())
-  site_id Int
-  site    Site     @relation(fields: [site_id], references: [id])
+  site_id Int?
+  site    Site?    @relation(fields: [site_id], references: [id], onDelete: SetNull)
   user    String
   action  String
   log     String
