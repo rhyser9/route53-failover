@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { logSiteActivity } from "@lib/activitylog";
 import prisma from "@lib/prisma";
-import { getRecordsForSite, updateRecords } from "@lib/aws_r53Client";
-import { Change, ChangeResourceRecordSetsCommandInput } from "@aws-sdk/client-route-53";
+import { getFailoverChangesForSite, getRecordsForSite, updateRecords } from "@lib/aws_r53Client";
+import { ChangeResourceRecordSetsCommandInput } from "@aws-sdk/client-route-53";
 
 export default async function handler(
   req: NextApiRequest,
@@ -43,38 +43,15 @@ export default async function handler(
 
       logSiteActivity(site_id, "TODO", "FAILOVER", `Initiating failover of ${site.fqdn} (${site.name}), comment '${comment}'`);
 
-      var failoverInput: ChangeResourceRecordSetsCommandInput = {
-        HostedZoneId: site.zone_id,
-        ChangeBatch: {
-          Comment: comment,
-          Changes: []
-        }
-      };
-
-      for (const record of records) {
-        var changeInput: Change = {
-          Action: "UPSERT",
-          ResourceRecordSet: {
-            Name: record.Name,
-            Type: record.Type,
-            SetIdentifier: record.SetIdentifier!,
-            Weight: (dest === record.SetIdentifier ? 100 : 0),
-            ResourceRecords: record.ResourceRecords!,
+      try {
+        var failoverInput: ChangeResourceRecordSetsCommandInput = {
+          HostedZoneId: site.zone_id,
+          ChangeBatch: {
+            Comment: comment,
+            Changes: getFailoverChangesForSite(records, dest)
           }
         };
 
-        if (record.HealthCheckId !== undefined) {
-          changeInput.ResourceRecordSet!.HealthCheckId = record.HealthCheckId;
-        }
-        // TTL does not exist on AWS ALIAS records
-        if (record.TTL !== undefined) {
-          changeInput.ResourceRecordSet!.TTL = record.TTL;
-        }
-
-        failoverInput.ChangeBatch?.Changes?.push(changeInput);
-      }
-
-      try {
         const output = await updateRecords(site.account_id, failoverInput);
         res.status(200).json(output);
         logSiteActivity(site_id, "TODO", "FAILOVER", `Failover complete for site ${site.fqdn} (${site.name})`);

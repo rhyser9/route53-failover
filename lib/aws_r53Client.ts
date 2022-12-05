@@ -1,4 +1,5 @@
 import {
+  Change,
   ChangeResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommandInput,
   GetHealthCheckStatusCommand,
@@ -231,4 +232,37 @@ export async function updateRecords(account_id: string, input: ChangeResourceRec
   const command = new ChangeResourceRecordSetsCommand(input);
   const output = await r53.send(command);
   return output;
+}
+
+export function getFailoverChangesForSite(records: ResourceRecordSet[], dest: string): Change[] {
+
+  var changes: Change[] = [];
+
+  for (const record of records) {
+    var changeInput: Change = {
+      Action: "UPSERT",
+      ResourceRecordSet: {
+        Name: record.Name,
+        Type: record.Type,
+        SetIdentifier: record.SetIdentifier!,
+        Weight: (dest === record.SetIdentifier ? 100 : 0),
+        ResourceRecords: record.ResourceRecords!,
+      }
+    };
+
+    if (record.HealthCheckId !== undefined) {
+      changeInput.ResourceRecordSet!.HealthCheckId = record.HealthCheckId;
+    }
+    // TTL does not exist on AWS ALIAS records
+    if (record.TTL !== undefined) {
+      changeInput.ResourceRecordSet!.TTL = record.TTL;
+    }
+
+    changes.push(changeInput);
+  }
+
+  if (!changes.find(change => change.ResourceRecordSet!.Weight === 100)) {
+    throw new Error(`Failed to generate failover changes, resulted in no active record`);
+  }
+  return changes;
 }
