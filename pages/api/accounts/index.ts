@@ -3,6 +3,7 @@ import { Prisma, Account } from '@prisma/client';
 import prisma from '@lib/prisma';
 import { STSServiceException } from '@aws-sdk/client-sts';
 import { getAccountIdFromAccessKey } from '@lib/account';
+import { logActivity } from '@lib/activitylog';
 
 export default async function handler(
   req: NextApiRequest,
@@ -47,7 +48,7 @@ export default async function handler(
       // check unique account id
       var account = accounts.find(account => account.id === account_id);
       if (account !== undefined) {
-        res.status(409).end(`Account id ${account.id} (${account.name}) already exists`);
+        res.status(409).end(`Account ${account.id} (${account.name}) already exists`);
         return;
       }
 
@@ -69,11 +70,13 @@ export default async function handler(
 
         res.setHeader('Location', `/api/accounts/${account_id}`);
         res.status(201).json([newAccount]);
+        logActivity("TODO", "CREATE", `Created new account config for ${newAccount.id} (${newAccount.name})`);
         return;
 
       } catch (e) {
         console.log(e);
         res.status(500).end(`Error inserting account ${account_id} (${account_name}) into database`);
+        logActivity("TODO", "ERROR", `Error inserting account ${account_id} (${account_name}) into database`);
         return;
       }
     }

@@ -3,6 +3,7 @@ import { Prisma, Account, Credentials } from '@prisma/client';
 import prisma from '@lib/prisma';
 import { STSServiceException } from '@aws-sdk/client-sts';
 import { getAccountIdFromAccessKey } from '@lib/account';
+import { logActivity } from '@lib/activitylog';
 
 export default async function handler(
   req: NextApiRequest,
@@ -80,12 +81,15 @@ export default async function handler(
         const deleteCredential = prisma.credentials.delete({ where: { access_key: access_key } });
         const updateAccount = prisma.account.update({ where: { id: account_id }, data: updatedAccountInput });
         const [, updatedAccount] = await prisma.$transaction([deleteCredential, updateAccount]);
+
         res.status(200).json(updatedAccount);
+        logActivity("TODO", "CREATE", `Updated account config for ${updatedAccount.id} (${updatedAccount.name})`);
         return;
 
       } catch (e) {
         console.log(e);
-        res.status(500).end(`Error inserting account ${account_id} ${account_name} into database`);
+        res.status(500).end(`Error updating account ${account_id} (${account_name}) in database`);
+        logActivity("TODO", "ERROR", `Error updating account ${account_id} (${account_name}) in database: ${e}`);
         return;
       }
     }
@@ -93,10 +97,12 @@ export default async function handler(
       try {
         await prisma.account.delete({ where: { id: account_id } });
         res.status(204).end();
+        logActivity("TODO", "DELETE", `Deleted account ${account_id} (${account.name})`);
         return;
       } catch (e) {
         console.log(e);
         res.status(500).end(`Failed to delete account ${account_id} (${account.name})`);
+        logActivity("TODO", "ERROR", `Failed to delete account ${account_id} (${account.name})`);
         return;
       }
     }

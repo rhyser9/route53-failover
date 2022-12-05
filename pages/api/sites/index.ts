@@ -4,6 +4,7 @@ import prisma from "@lib/prisma";
 import { getHostedZones, getRecords } from "@lib/aws_r53Client";
 import { getAccountIdFromZoneId } from "@lib/account";
 import { Prisma } from "@prisma/client";
+import { logActivity, logSiteActivity } from "@lib/activitylog";
 
 export default async function handler(
   req: NextApiRequest,
@@ -84,11 +85,13 @@ export default async function handler(
 
         res.setHeader('Location', `/api/sites/${newSite.id}`);
         res.status(201).json([newSite]);
+        logSiteActivity(newSite.id, "TODO", "CREATE", `Created new site config for ${newSite.fqdn} (${newSite.name}) in zone ${newSite.zone_id}`);
         return;
 
       } catch (e) {
         console.log(e);
-        res.status(500).end(`Error inserting new site ${name} (${fqdn}) into database`);
+        res.status(500).end(`Error inserting new site ${fqdn} (${name}) into database`);
+        logActivity("TODO", "ERROR", `Error inserting new site ${fqdn} (${name}) into database`);
         return;
       }
     }

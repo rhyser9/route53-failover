@@ -1,5 +1,6 @@
 import { GetHealthCheckStatusCommand, HealthCheck, HealthCheckObservation, HostedZone, ListHealthChecksCommand, ListHostedZonesCommand, ListResourceRecordSetsCommand, ResourceRecordSet, Route53Client } from "@aws-sdk/client-route-53";
 import NodeCache from "node-cache";
+import { logActivity } from "./activitylog";
 import prisma from "./prisma";
 
 export type { HostedZone };
@@ -50,9 +51,11 @@ export async function getHostedZones(account_id: string, forceRefresh: boolean =
   const r53 = new Route53Client(clientConfig);
   var result = await r53.send(new ListHostedZonesCommand({ MaxItems: 500 }));
   if (result.IsTruncated) {
+    logActivity("SYSTEM", "ERROR", `Too many hosted zones in account ${account_id}, please implement pagination`);
     throw new Error(`Too many hosted zones in account ${account_id}, please implement pagination`);
   }
   if (result.HostedZones === undefined) {
+    logActivity("SYSTEM", "ERROR", `AWS hosted zones returned undefined for account ${account_id} instead of []`);
     console.log(`AWS hosted zones returned undefined for account ${account_id} instead of []`);
     return {};
   }
@@ -101,9 +104,11 @@ export async function getRecords(account_id: string, zone_id: string, forceRefre
   const r53 = new Route53Client(clientConfig);
   var result = await r53.send(new ListResourceRecordSetsCommand({ HostedZoneId: zone_id, MaxItems: 1000 }));
   if (result.IsTruncated) {
+    logActivity("SYSTEM", "ERROR", `Too many resource records in account ${account_id} hosted zone ${zone_id}, please implement pagination`);
     throw new Error(`Too many resource records in account ${account_id} hosted zone ${zone_id}, please implement pagination`);
   }
   if (result.ResourceRecordSets === undefined) {
+    logActivity("SYSTEM", "ERROR", `AWS resource records returned undefined for account ${account_id} hosted zone ${zone_id} instead of []`);
     console.log(`AWS resource records returned undefined for account ${account_id} hosted zone ${zone_id} instead of []`);
     return [];
   }
@@ -136,9 +141,11 @@ export async function getHealthChecks(account_id: string, forceRefresh: boolean 
   const r53 = new Route53Client(clientConfig);
   var result = await r53.send(new ListHealthChecksCommand({ MaxItems: 1000 }));
   if (result.IsTruncated) {
+    logActivity("SYSTEM", "ERROR", `Too many health checks in account ${account_id}, please implement pagination`);
     throw new Error(`Too many health checks in account ${account_id}, please implement pagination`);
   }
   if (result.HealthChecks === undefined) {
+    logActivity("SYSTEM", "ERROR", `AWS health checks returned undefined for account ${account_id} instead of []`);
     console.log(`AWS health checks returned undefined for account ${account_id} instead of []`);
     return {};
   }
@@ -172,6 +179,7 @@ export async function getHealthCheckObservations(account_id: string, health_chec
   const r53 = new Route53Client(clientConfig);
   var result = await r53.send(new GetHealthCheckStatusCommand({ HealthCheckId: health_check_id }));
   if (result.HealthCheckObservations === undefined) {
+    logActivity("SYSTEM", "ERROR", `AWS health check observations returned undefined for account ${account_id} health check ${health_check_id} instead of []`);
     console.log(`AWS health check observations returned undefined for account ${account_id} health check ${health_check_id} instead of []`);
     return [];
   }
