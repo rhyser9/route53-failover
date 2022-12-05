@@ -1,4 +1,6 @@
 import {
+  ChangeResourceRecordSetsCommand,
+  ChangeResourceRecordSetsCommandInput,
   GetHealthCheckStatusCommand,
   HealthCheck,
   HealthCheckObservation,
@@ -204,4 +206,29 @@ export async function getHealthCheckObservations(account_id: string, health_chec
 
   statusCache.set(health_check_id, result.HealthCheckObservations);
   return result.HealthCheckObservations;
+}
+
+export async function updateRecords(account_id: string, input: ChangeResourceRecordSetsCommandInput) {
+
+
+  const account = await prisma.account.findUnique({ include: { credential: true }, where: { id: account_id } });
+  if (account === null) {
+    throw new Error(`Account ${account_id} does not exist`);
+  }
+  if (account.credential === null) {
+    throw new Error(`Account ${account_id} is missing credentials`);
+  }
+
+  const clientConfig = {
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: account.access_key,
+      secretAccessKey: account.credential.secret_key
+    }
+  };
+
+  const r53 = new Route53Client(clientConfig);
+  const command = new ChangeResourceRecordSetsCommand(input);
+  const output = await r53.send(command);
+  return output;
 }
