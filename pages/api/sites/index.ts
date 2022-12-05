@@ -53,12 +53,12 @@ export default async function handler(
       // Check that A / AAAA / CNAME records exist in AWS
       // TODO: check that the records are weighted? via `if typeof record.Weight !== undefined`
       const records = await getRecords(account_id, zone_id);
-      const filteredRecordNames = records.reduce((names, record) => {
-        if (["A", "AAAA", "CNAME"].includes(record.Type ?? "")) names.push(record.Name ?? "");
-        return names;
-      }, [] as string[]);
-
-      if (!filteredRecordNames.includes(fqdn)) {
+      // const filteredRecordNames = records.reduce((names, record) => {
+      //   if (["A", "AAAA", "CNAME"].includes(record.Type ?? "")) names.push(record.Name ?? "");
+      //   return names;
+      // }, [] as string[]);
+      // if (!filteredRecordNames.includes(fqdn)) {
+      if (!records.some(record => record.Name === fqdn && ["A", "AAAA", "CNAME"].includes(record.Type ?? ""))) {
         res.status(400).end(`No DNS records exist in AWS for ${fqdn}`);
         return;
       }

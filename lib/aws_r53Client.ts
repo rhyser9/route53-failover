@@ -1,4 +1,14 @@
-import { GetHealthCheckStatusCommand, HealthCheck, HealthCheckObservation, HostedZone, ListHealthChecksCommand, ListHostedZonesCommand, ListResourceRecordSetsCommand, ResourceRecordSet, Route53Client } from "@aws-sdk/client-route-53";
+import {
+  GetHealthCheckStatusCommand,
+  HealthCheck,
+  HealthCheckObservation,
+  HostedZone,
+  ListHealthChecksCommand,
+  ListHostedZonesCommand,
+  ListResourceRecordSetsCommand,
+  ResourceRecordSet,
+  Route53Client
+} from "@aws-sdk/client-route-53";
 import NodeCache from "node-cache";
 import { logActivity } from "./activitylog";
 import prisma from "./prisma";
@@ -115,6 +125,14 @@ export async function getRecords(account_id: string, zone_id: string, forceRefre
 
   recordCache.set(zone_id, result.ResourceRecordSets);
   return result.ResourceRecordSets;
+}
+
+export async function getRecordsForSite(account_id: string, zone_id: string, site_id: number, forceRefresh: boolean = false): Promise<ResourceRecordSet[]> {
+  const site = await prisma.site.findUniqueOrThrow({ where: { id: site_id } });
+  const zoneRecords = await getRecords(account_id, zone_id, forceRefresh);
+  const siteRecords = zoneRecords.filter(record => record.Name == site.fqdn);
+  // TODO: check that the records are weighted? via `if typeof record.Weight !== undefined`
+  return siteRecords;
 }
 
 export async function getHealthChecks(account_id: string, forceRefresh: boolean = false): Promise<HealthChecksIndex> {
