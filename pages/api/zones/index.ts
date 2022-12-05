@@ -1,8 +1,5 @@
-import { getHostedZones, HostedZonesIndex } from "@lib/aws_r53Client";
-import prisma from "@lib/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
-
-type AccountZonesIndex = { [key: string]: HostedZonesIndex; };
+import { AccountZonesIndex, getAccountZoneIndex } from "@lib/aws_r53Client";
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,18 +7,8 @@ export default async function handler(
 ) {
   switch (req.method) {
     case 'GET':
-      const accounts = await prisma.account.findMany();
-      const account_ids = accounts.map(account => account.id);
-
-      var promises: Promise<HostedZonesIndex>[] = [];
-      account_ids.forEach(account_id => {
-        promises.push(getHostedZones(account_id, true));
-      });
-
-      const resultsArr = await Promise.all(promises);
-      const results: AccountZonesIndex = account_ids.reduce((obj, account_id, i) => ({ ...obj, [account_id]: resultsArr[i] }), {});
-
-      res.status(200).json(results);
+      const zones = await getAccountZoneIndex();
+      res.status(200).json(zones);
       return;
 
     default:

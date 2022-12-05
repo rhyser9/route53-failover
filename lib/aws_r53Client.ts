@@ -5,6 +5,7 @@ import prisma from "./prisma";
 export type { HostedZone };
 export type HostedZonesIndex = { [key: string]: HostedZone; };
 export type HealthChecksIndex = { [key: string]: HealthCheck; };
+export type AccountZonesIndex = { [key: string]: HostedZonesIndex; };
 
 // TODO: extract this to env / config / settings UI / somewhere else
 const TTL_ZONES = 15; //300;
@@ -59,6 +60,21 @@ export async function getHostedZones(account_id: string, forceRefresh: boolean =
   const indexedZones: HostedZonesIndex = result.HostedZones.reduce((obj, zone) => ({ ...obj, [(zone.Id as string).replace("/hostedzone/", "")]: zone }), {});
   zoneCache.set(account_id, indexedZones);
   return indexedZones;
+}
+
+export async function getAccountZoneIndex(forceRefresh: boolean = false): Promise<AccountZonesIndex> {
+  const accounts = await prisma.account.findMany();
+  const account_ids = accounts.map(account => account.id);
+
+  var promises: Promise<HostedZonesIndex>[] = [];
+  account_ids.forEach(account_id => {
+    promises.push(getHostedZones(account_id, true));
+  });
+
+  const resultsArr = await Promise.all(promises);
+  const results: AccountZonesIndex = account_ids.reduce((obj, account_id, i) => ({ ...obj, [account_id]: resultsArr[i] }), {});
+
+  return results;
 }
 
 export async function getRecords(account_id: string, zone_id: string, forceRefresh: boolean = false): Promise<ResourceRecordSet[]> {
