@@ -56,7 +56,7 @@ export default async function handler(
         res.status(200).json(output);
         logSiteActivity(site_id, "TODO", "FAILOVER", `Failover complete for site ${site.fqdn} (${site.name})`);
         return;
-        // TODO: check change result
+
       } catch (e) {
         console.log(`Failover failed for site ${site.fqdn} (${site.name})`);
         console.log(e);
